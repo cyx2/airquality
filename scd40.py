@@ -13,7 +13,6 @@ load_dotenv()
 
 scd4x = adafruit_scd4x.SCD4X(board.I2C())
 scd4x.start_periodic_measurement()
-print("Waiting for first measurement....")
 
 cnx = mysql.connector.connect(
     host=os.getenv('DB_HOST'),
@@ -31,10 +30,6 @@ add_measurement = ("INSERT INTO Measurements "
 
 while True:
     if scd4x.data_ready:
-        print("Ambient CO2: %d ppm" % scd4x.CO2)
-        print("Sensor Temperature: %0.1f *C" % scd4x.temperature)
-        print("Ambient Humidity: %0.1f %%" % scd4x.relative_humidity)
-        print()
 
         data_measurement = {
             'MeasuredAt': datetime.combine(datetime.now().date(), datetime.now().time()),
@@ -42,8 +37,6 @@ while True:
             'Temp': scd4x.temperature,
             'Humidity': scd4x.relative_humidity,
         }
-
-        print(add_measurement, data_measurement)
 
         cur.execute(add_measurement, data_measurement)
 
