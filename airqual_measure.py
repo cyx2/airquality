@@ -28,7 +28,10 @@ add_measurement = ("INSERT INTO Measurements "
                    "(MeasuredAt, CO2, Temp, Humidity) "
                    "VALUES (%(MeasuredAt)s, %(CO2)s, %(Temp)s, %(Humidity)s)")
 
+print('Starting airqual_measure.py')
+
 while True:
+    
     if scd4x.data_ready:
 
         data_measurement = {
