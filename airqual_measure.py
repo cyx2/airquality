@@ -31,7 +31,6 @@ add_measurement = ("INSERT INTO Measurements "
 print('Starting airqual_measure.py')
 
 while True:
-    
     if scd4x.data_ready:
 
         data_measurement = {
