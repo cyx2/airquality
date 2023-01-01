@@ -8,40 +8,56 @@ import mysql.connector
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+import sys
 
 load_dotenv()
 
-scd4x = adafruit_scd4x.SCD4X(board.I2C())
-scd4x.start_periodic_measurement()
+sensor = adafruit_scd4x.SCD4X(board.I2C())
+sensor.start_periodic_measurement()
 
 cnx = mysql.connector.connect(
-    host=os.getenv('DB_HOST'),
-    port=os.getenv('DB_PORT'),
-    user=os.getenv('DB_USER'),
-    password=os.getenv('DB_PASSWORD')
-    )
+    host=os.getenv("DB_HOST"),
+    port=os.getenv("DB_PORT"),
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASSWORD"),
+)
 
 # Get a cursor
 cur = cnx.cursor()
 
-add_measurement = ("INSERT INTO Measurements "
-                   "(MeasuredAt, CO2, Temp, Humidity) "
-                   "VALUES (%(MeasuredAt)s, %(CO2)s, %(Temp)s, %(Humidity)s)")
+add_measurement = (
+    "INSERT INTO Measurements "
+    "(MeasuredAt, CO2, Temp, Humidity) "
+    "VALUES (%(MeasuredAt)s, %(CO2)s, %(Temp)s, %(Humidity)s)"
+)
 
-print('Starting airqual_measure.py')
+print("Starting airqual_measure.py")
 
 while True:
-    if scd4x.data_ready:
+    try:
+        if sensor.data_ready:
 
-        data_measurement = {
-            'MeasuredAt': datetime.combine(datetime.now().date(), datetime.now().time()),
-            'CO2': scd4x.CO2,
-            'Temp': scd4x.temperature,
-            'Humidity': scd4x.relative_humidity,
-        }
+            data_measurement = {
+                "MeasuredAt": datetime.combine(
+                    datetime.now().date(), datetime.now().time()
+                ),
+                "CO2": sensor.CO2,
+                "Temp": sensor.temperature,
+                "Humidity": sensor.relative_humidity,
+            }
 
-        cur.execute(add_measurement, data_measurement)
+            cur.execute(add_measurement, data_measurement)
 
-        cnx.commit()
-    time.sleep(1)
+            cnx.commit()
 
+            print("Added data.")
+
+            time.sleep(1)
+    except KeyboardInterrupt:
+        cnx.close()
+        print("DB connection closed, keyboard interrupt.")
+        sys.exit(1)
+    except SystemExit:
+        cnx.close()
+        print("DB connection closed, system interrupt.")
+        sys.exit(1)
