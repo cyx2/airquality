@@ -50,8 +50,6 @@ while True:
 
             cnx.commit()
 
-            print("Added data.")
-
             time.sleep(1)
     except KeyboardInterrupt:
         cnx.close()
