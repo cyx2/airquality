@@ -58,8 +58,6 @@ while True:
 
             mdb_coll.insert_one(data_measurement)
 
-            print("Data inserted.")
-
             time.sleep(1)
     except KeyboardInterrupt:
         print("\nKeyboard Interrupt")
