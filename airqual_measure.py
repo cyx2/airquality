@@ -9,27 +9,34 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 import sys
+import pymongo
 
 load_dotenv()
 
 sensor = adafruit_scd4x.SCD4X(board.I2C())
 sensor.start_periodic_measurement()
 
-cnx = mysql.connector.connect(
+pscale_cxn = mysql.connector.connect(
     host=os.getenv("DB_HOST"),
     port=os.getenv("DB_PORT"),
     user=os.getenv("DB_USER"),
     password=os.getenv("DB_PASSWORD"),
 )
-
-# Get a cursor
-cur = cnx.cursor()
-
-add_measurement = (
+cur = pscale_cxn.cursor()
+pscale_query = (
     "INSERT INTO Measurements "
     "(MeasuredAt, CO2, Temp, Humidity) "
     "VALUES (%(MeasuredAt)s, %(CO2)s, %(Temp)s, %(Humidity)s)"
 )
+
+mdb_client = client = pymongo.MongoClient(
+    f"mongodb+srv://{os.getenv('MDB_USER')}:"
+    f"{os.getenv('MDB_PASSWORD')}@"
+    f"{os.getenv('MDB_HOST')}"
+)
+mdb_db = mdb_client[os.getenv("MDB_DB")]
+mdb_coll = mdb_db[os.getenv("MDB_COLL")]
+
 
 print("Starting airqual_measure.py")
 
@@ -46,16 +53,31 @@ while True:
                 "Humidity": sensor.relative_humidity,
             }
 
-            cur.execute(add_measurement, data_measurement)
+            cur.execute(pscale_query, data_measurement)
+            pscale_cxn.commit()
 
-            cnx.commit()
+            mdb_coll.insert_one(data_measurement)
+
+            print("Data inserted.")
 
             time.sleep(1)
     except KeyboardInterrupt:
-        cnx.close()
-        print("DB connection closed, keyboard interrupt.")
+        print("\nKeyboard Interrupt")
+
+        pscale_cxn.close()
+        print("Planetscale Connection closed.")
+
+        mdb_client.close()
+        print("MongoDB Connection closed.")
+
         sys.exit(1)
     except SystemExit:
-        cnx.close()
-        print("DB connection closed, system interrupt.")
+        print("\nSystem Interrupt")
+
+        pscale_cxn.close()
+        print("Planetscale Connection closed.")
+
+        mdb_client.close()
+        print("MongoDB Connection closed.")
+
         sys.exit(1)
